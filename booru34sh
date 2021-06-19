@@ -1,0 +1,63 @@
+#!/bin/sh
+has() {
+  case "$(command -v $1 2>/dev/null)" in
+    alias*|"") return 1
+  esac
+}
+deps() {
+  deps="jq curl"
+  missing=0
+  for i in $deps; do
+    has $i || { echo "$i IS MISSING!"; exit 1; }
+  done
+  # Check for ssl
+  curl -V | grep tls -i -q || {
+    curl -V | grep ssl -i -q || {
+      echo "!!SSL/TLS SUPPORT IS MISSING FROM CURL!!"
+      echo "!!SOME SERVICES MAY NOT CONNECT!!"
+      export http="http"
+    }
+  }
+  [ ! "$http" ] && { export http="https"; } # default to https
+}
+danbooru(){
+  tags=$(echo "$2"| tr ' ' '+');
+  curl -sL "$http://danbooru.donmai.us/posts.json?tags=$tags&limit=200" | jq '.[] | .file_url'
+}
+safebooru(){
+  tags=$(echo "$2"| tr ' ' '+');
+  curl -sL "$http://safebooru.org/index.php?page=dapi&s=post&q=index&tags=$tags&limit=100" | sed 's/>/>\n/g' | tail +3 | grep "file_url" | while read -r ex ex1 ex2 file_url ex3; do
+    echo "$file_url" | cut -d'=' -f2 | tr -d '"'
+  done
+}
+rule34(){
+  tags=$(echo "$2"| tr ' ' '+');
+  curl -sL "$http://rule34.xxx//index.php?page=dapi&s=post&q=index&tags=$tags&limit=1000" | sed 's/>/>\n/g' | tail +3 | grep "file_url" | while read -r ex ex1 ex2 file_url ex3; do
+    echo "$file_url" | cut -d'=' -f2 | tr -d '"'
+  done 
+}
+e621(){
+  tags=$(echo "$2"| tr ' ' '+');
+  curl -sL "$http://e621.net/posts.json?tags=$tags&limit=120" --user-agent "booru34sh (https://github.com/ThatGeekyWeeb/booru34sh)" | jq '.[] | .[] | .file.url' -r # e621 requires a UA
+}
+deps
+case "$(basename $0)" in
+  booru34sh)
+    case "$1" in
+      danbooru|safebooru|r34|rule34|e621)
+        ${1} "$@";;
+      *)
+        echo 'Currently random services is WIP, please supply a service as $1'
+        exit 1
+        ;; # random service imp || WIP
+    esac
+  ;;
+  *)
+    t=$(basename $0)
+    type ${t} 2>/dev/null 1>/dev/null && {
+      ${t} - "$@" # $1 is unused by functions so use a placeholder
+    } || { echo "$t is not a valid func???"; exit 1; }
+  # this allows for symlinking to scripts for easy calling
+  # ie: danbooru <tags> # would call booru34sh using the danbooru service
+  ;;
+esac
