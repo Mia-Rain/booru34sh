@@ -20,9 +20,25 @@ deps() {
   }
   [ ! "$http" ] && { export http="https"; } # default to https
 }
+count() {
+  c=0; IFS=' +'; while read p; do
+    c=$(($c+1))
+  done << EOF
+$(printf '%s\n' $1)
+EOF
+  echo "$c"
+  # pure shell counter function
+
+  # heredocs are used as piping to the while loop puts the while loop in a subshell
+  # due to this subshell the value of $c is forgotten once the loop ends
+  # heredocs don't create a subshell, but are able to redirect the contents of a subshell
+  unset IFS
+}
 danbooru(){
-  tags=$(echo "$2"| tr ' ' '+');
-  curl -sL "$http://danbooru.donmai.us/posts.json?tags=$tags&limit=200" | jq '.[] | .file_url'
+  [ $(count "$2") -gt "2" ] && { echo "danbooru is maxed to 2 tags.. limiting search..."; }
+  # tag limiter
+  tags=$(echo "$2" | tr ' ' '+' | sed -e 's/+/ /' -e 's/+.*//g' | tr ' ' '+')
+  curl -sL "$http://danbooru.donmai.us/posts.json?tags=$tags&limit=200" | jq '.[] | .file_url' -r -M
 }
 safebooru(){
   tags=$(echo "$2"| tr ' ' '+');
@@ -34,21 +50,26 @@ rule34(){
   tags=$(echo "$2"| tr ' ' '+');
   curl -sL "$http://rule34.xxx//index.php?page=dapi&s=post&q=index&tags=$tags&limit=1000" | sed 's/>/>\n/g' | tail +3 | grep "file_url" | while read -r ex ex1 ex2 file_url ex3; do
     echo "$file_url" | cut -d'=' -f2 | tr -d '"'
-  done 
+  done
 }
 e621(){
   tags=$(echo "$2"| tr ' ' '+');
-  curl -sL "$http://e621.net/posts.json?tags=$tags&limit=120" --user-agent "booru34sh (https://github.com/ThatGeekyWeeb/booru34sh)" | jq '.[] | .[] | .file.url' -r # e621 requires a UA
+  curl -sL "$http://e621.net/posts.json?tags=$tags&limit=120" --user-agent "booru34sh (https://github.com/ThatGeekyWeeb/booru34sh)" | jq '.[] | .[] | .file.url' -r -M # e621 requires a UA
 }
+ran(){
+  IFS=""; [ "$3" ] && { blk=${3#-}; } || { blk="danbooru"; } # service blacklist
+  # defaults to danbooru; due to 2 tag max
+  list=$(printf "%s\n" safebooru danbooru rule34 e621 | shuf | sed -e "/${blk}/d" | head -1) 
+  echo "Using $list"; unset IFS ; ${list} - "${2:-$1}"; exit 0
+} 
 deps
 case "$(basename $0)" in
   booru34sh)
     case "$1" in
       danbooru|safebooru|r34|rule34|e621)
-        ${1} "$@";;
-      *)
-        echo 'Currently random services is WIP, please supply a service as $1'
-        exit 1
+        [ "$1" = "r34" ] && { rule34 "$@"; exit 0; } || { ${1} "$@"; };;
+      ""|*)
+        ran "$@"
         ;; # random service imp || WIP
     esac
   ;;
