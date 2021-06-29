@@ -21,11 +21,9 @@ deps() {
   [ ! "$http" ] && { export http="https"; } # default to https
 }
 count() {
-  c=0; IFS=' +'; while read p; do
-    c=$(($c+1))
-  done << EOF
-$(printf '%s\n' $1)
-EOF
+  c=0; IFS=' +'; for i in $1; do
+    : $((c+=1))
+  done
   echo "$c"
   # pure shell counter function
 
