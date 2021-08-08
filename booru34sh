@@ -53,7 +53,7 @@ rule34(){
   :;} || {
     while read -r p || [ -n "$p" ]; do
       IFS=""
-      p="${a##*f=\"}"; p="${p%%&amp*}"; p="${p##*id=}"
+      p="${p##*f=\"}"; p="${p%%&amp*}"; p="${p##*id=}"
       file_url=$(curl -sL "http://rule34.xxx//index.php?page=dapi&s=post&q=index&id=$p" | sed 's/>/>\n/g' | tail +3);
       file_url="${file_url##*file_url=\"}"; file_url="${file_url%%\"*}"
       echo "$file_url"
