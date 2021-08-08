@@ -45,10 +45,22 @@ safebooru(){
   done
 }
 rule34(){
-  tags=$(echo "$2"| tr ' ' '+');
-  curl -sL "$http://rule34.xxx//index.php?page=dapi&s=post&q=index&tags=$tags&limit=1000" | sed 's/>/>\n/g' | tail +3 | grep "file_url" | while read -r ex ex1 ex2 file_url ex3; do
-    echo "$file_url" | cut -d'=' -f2 | tr -d '"'
-  done
+  [ "$2" != "pool" ] && {
+    tags=$(echo "$2"| tr ' ' '+');
+    curl -sL "$http://rule34.xxx//index.php?page=dapi&s=post&q=index&tags=$tags&limit=1000" | sed 's/>/>\n/g' | tail +3 | grep "file_url" | while read -r ex ex1 ex2 file_url ex3; do
+      echo "$file_url" | cut -d'=' -f2 | tr -d '"'
+    done
+  :;} || {
+    while read -r p || [ -n "$p" ]; do
+      IFS=""
+      p="${a##*f=\"}"; p="${p%%&amp*}"; p="${p##*id=}"
+      file_url=$(curl -sL "http://rule34.xxx//index.php?page=dapi&s=post&q=index&id=$p" | sed 's/>/>\n/g' | tail +3);
+      file_url="${file_url##*file_url=\"}"; file_url="${file_url%%\"*}"
+      echo "$file_url"
+    done << EOF
+$(curl -sL "https://rule34.xxx/index.php?page=pool&s=show&id=${3:?A pool ID is required}" | grep "&id=")
+EOF
+  }
 }
 e621(){
   tags=$(echo "$2"| tr ' ' '+');
