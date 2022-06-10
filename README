@@ -1,0 +1,25 @@
+---
+Usage
+-- ./booru34sh <service> "<tags>"
+---- ./booru34sh r34 "femboy anal"
+---- spaces or +'s may be used
+---
+Current sites/services
+-- e621
+---- Searchs e621 using given tags
+---- uses e621's custom json api
+---- may be throttled
+-- r34
+---- searches r34/rule34.xxx
+---- uses classic XML api
+-- safebooru
+---- SFW only
+-- danbooru
+---- 2 tag limit
+---- api key not supported ATM
+-- random
+---- picks random site using shuf
+---- sites are: safebooru danbooru rule34 e621
+---- $3 can be used to blacklist sites
+---- danbooru is blacked by default
+---
