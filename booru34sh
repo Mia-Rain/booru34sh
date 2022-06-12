@@ -47,7 +47,7 @@ safebooru(){
 rule34(){
   [ "$2" != "pool" ] && {
     tags=$(echo "$2"| tr ' ' '+');
-    curl -sL "$http://rule34.xxx//index.php?page=dapi&s=post&q=index&tags=$tags&limit=1000" | sed 's/>/>\n/g' | tail +3 | grep "file_url" | while read -r ex ex1 ex2 file_url ex3; do
+    curl -sL "$http://rule34.xxx//index.php?page=dapi&s=post&q=index&tags=$tags&limit=1000&pid=${pid:-0}" | sed 's/>/>\n/g' | tail +3 | grep "file_url" | while read -r ex ex1 ex2 file_url ex3; do
       echo "$file_url" | cut -d'=' -f2 | tr -d '"'
     done
   :;} || {
